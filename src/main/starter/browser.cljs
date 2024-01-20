@@ -1,29 +1,17 @@
 (ns starter.browser
-  (:require [reagent.core :as r]
-            [reagent.dom :as rdom]))
-(def game (r/atom {:board [["x" "_" "_"]
-                               ["_" "o" "x"]
-                               ["_" "_" "_"]]
-                       :move []
-                       :turn "o"}))
-
-(comment
-  
-  (get-in @game [:board 1]) 
-  (swap! game update-in [:move] conj [3 4])
-
-  (swap! game #(assoc-in % [:move]  [1 2]))
-  
-
-  (swap! game #(update-in % [:move] conj [1 2]))
-  
-  )
-
+   (:require [reagent.core :as r]
+             [reagent.dom :as rdom]))
+ 
+ (def *game (r/atom {:board [["_" "_" "_"]
+                            ["_" "_" "_"]
+                            ["_" "_" "_"]]
+                    :moves []
+                    :turn "o"}))
 (defn draw-circle [x y]
   (let [cx (+ 50 (* x 100))
         cy (+ 50 (* y 100))
         r 30]
-    [:svg 
+    [:svg
      [:circle {:cx cx
                :cy cy
                :r r
@@ -33,6 +21,56 @@
                :cy cy
                :r (- r 5)
                :fill "white"}]]))
+
+ (defn update-board [board [c x y]]
+   (assoc-in board [x y] c))
+
+ (defn play-move [game x y]
+   (let [c (get-in game [:turn])
+         move [c x y]
+         next-turn (if (= c "o")
+                     "x"
+                     "o")]
+     (-> (update-in game [:moves] conj move)
+         (update :board update-board move)
+         (assoc :turn next-turn))))
+
+ (comment
+   (def *game (r/atom {:board [["_" "_" "_"]
+                              ["_" "_" "_"]
+                              ["_" "_" "_"]]
+                      :moves []
+                      :turn "o"}))
+   (get-in @*game [:board 1])
+   @*game
+   (swap! *game update-in [:moves] conj [3 4])
+
+   (swap! *game #(assoc-in % [:moves]  [1 2]))
+
+   (swap! *game #(update-in % [:moves] conj ["o" 1 2]))
+   @*game
+   (swap! *game update :turn (constantly "x"))
+   (get-in @*game [:turn 1])
+   (swap! *game #(update-in % [:moves] conj [1 2]))
+   
+   {:on-click (js/alert "hello")} 
+   )
+    
+ 
+(defn draw-rectangle [x y]
+  (let [x1 (+ 12 (* 98 x))
+        y1 (+ 12 (* 98 y))
+        width (- 100 15)
+        height (- 100 15)]
+    [:svg
+     [:rect {:x x1
+             :y y1
+             :width width
+             :height height
+             :fill "white"
+             :stroke "white"
+             :onClick (swap! *game play-move y x)}]]))
+
 
 (defn draw-cross [x y]
   (let [x1 (+ 20 (* 100 x))
@@ -44,8 +82,7 @@
                   :x2 x2
                   :y2 y2
                   :stroke "red"
-                  :stroke-width 10
-                  }]
+                  :stroke-width 10}]
      [:line {:x1 x1
              :y1 y2
              :x2 x2
@@ -57,11 +94,9 @@
         x-ini 10
         y-ini 10
         x-cor 100
-        y-cor 100
-        x 1
-        y 1]
-    
-    (into 
+        y-cor 100]
+
+    (into
      [:svg {:viewBox "0 0 700 600"}
       [:rect  {:x            x-ini
                :y            y-ini
@@ -93,8 +128,7 @@
               :x2   (* x-cor 2)
               :y2   size
               :stroke "black"
-              :stroke-width 5}]
-      ]
+              :stroke-width 5}]]
      (for [x (range 3)
            y (range 3)
            :let [cell (get-in board [x y])]]
@@ -102,21 +136,13 @@
          (draw-cross y x)
          (if (= cell "o")
            (draw-circle y x)
-           nil)))
-     
-     )))
-
-
-
-
+           (draw-rectangle y x)))))))
 
 (defn init []
-  
-  [:div 
+
+  [:div
    [:h1 "Noughts & Crosses"]
-   [draw-board (:board @game)]
-   
-   ])
+   [draw-board (:board @*game)]])
 
 (defn start []
   (rdom/render [init] (js/document.getElementById "app")))
