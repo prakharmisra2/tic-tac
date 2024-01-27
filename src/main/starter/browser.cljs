@@ -1,6 +1,8 @@
 (ns starter.browser
   (:require [reagent.core :as r]
-            [reagent.dom :as rdom]))
+            [reagent.dom :as rdom]
+            [starter.events :as sevt]
+            [re-frame.core :as rf]))
 
 (def ^:private empty-game
   {:board [["_" "_" "_"]
@@ -22,6 +24,8 @@
                :stroke "grey"
                :stroke-width 10
                :fill "white"}]]))
+
+
 (defn hori-check [board]
   (cond
     (= (map #(get-in board [0 %]) [0 1 2]) ["x" "x" "x"]) ["x" [0 0] [0 2]]
@@ -52,6 +56,8 @@
                 (vert-check board)
                 (dig-check board))]
     win))
+
+
 
 (defn display-winner [winn]
   (when winn
@@ -92,9 +98,9 @@
   @*game
   (swap! *game update :turn (constantly "x"))
   (get-in @*game [:turn 1])
-  (swap! *game #(update-in % [:moves] conj [1 2])) 
-  (js/console.log @*game) 
-  
+  (swap! *game #(update-in % [:moves] conj [1 2]))
+  (js/console.log @*game)
+
   (defn draw [board]
     (if (and
          (every? #(not= "_" %) (flatten board))
@@ -102,6 +108,19 @@
       (println "draw")))
   (draw (:board @*game))
   (clojure.string/join "." ["abc" "def"])
+
+  (defn match-draw [board]
+    (if (and
+         (every? #(not= "_" %) (flatten board))
+         (not (winner board)))
+      true
+      false))
+  (assoc :draw (draw-match new-board))
+  
+  (when (:draw @*game)
+    [:div
+     [:h1 {:style {:color "blue"}} [:b "Match draw -- GAME OVER"]]])
+
 
   )
 
@@ -122,6 +141,7 @@
              :stroke "white"
              :onClick #(do
                          (swap! *game play-move y x)
+                         (rf/dispatch [::sevt/play-move y x])
                          (js/console.log @*game))}]]))
 
 
@@ -229,19 +249,27 @@
    ;[:button.btn.btn-primary "hello"]
    [:input {:type "button"
             :value "turn of O"
-            :on-click #(swap! *game update-turn "o")}]
+            :on-click #(do
+                         (swap! *game update-turn "o")
+                         (rf/dispatch [::sevt/update-turn "o"] ))}]
 
    [:input {:type "button"
             :value "turn of X"
-            :on-click #(swap! *game update-turn "x")}]
+            :on-click #(do
+                         (swap! *game update-turn "x")
+                         (rf/dispatch [::sevt/update-turn "x"]))}]
 
    [:input {:type "button"
             :value "reset!"
-            :on-click #(reset! *game empty-game)}]
+            :on-click #(do
+                         (reset! *game empty-game)
+                         (rf/dispatch [::sevt/load-game ]))}]
 
    [draw-board (:board @*game) (:winner @*game)]])
 
 (defn start []
-  (rdom/render [init] (js/document.getElementById "app")))
+  (rf/dispatch [::sevt/load-game])
+  (rdom/render [init] (js/document.getElementById "app"))
+  )
 
 (start)
