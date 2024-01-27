@@ -76,9 +76,9 @@
         (assoc :winner (winner new-board)))))
 
 (comment
-  (def *game (r/atom {:board [["o" "_" "x"]
-                              ["o" "x" "x"]
-                              ["x" "_" "o"]]
+  (def *game (r/atom {:board [["o" "o" "x"]
+                              ["x" "x" "o"]
+                              ["o" "x" "o"]]
                       :moves []
                       :turn "o"
                       :winner nil}))
@@ -95,6 +95,14 @@
   (swap! *game #(update-in % [:moves] conj [1 2])) 
   (js/console.log @*game) 
   
+  (defn draw [board]
+    (if (and
+         (every? #(not= "_" %) (flatten board))
+         (not (winner board)))
+      (println "draw")))
+  (draw (:board @*game))
+  (clojure.string/join "." ["abc" "def"])
+
   )
 
 
@@ -142,7 +150,7 @@
         y-cor 100]
 
     (into
-     [:svg {:viewBox "0 0 400 400"}
+     [:svg {:viewBox "0 0 900 900"}
       [:rect  {:x            x-ini
                :y            y-ini
                :width        (- size x-ini)
@@ -198,26 +206,39 @@
 (defn update-turn [game tur]
   (assoc game :turn  tur))
 
+(defn match-draw [board] 
+  (if (and
+       (every? #(not= "_" %) (flatten board))
+       (not (winner board)))
+    (do 
+      [:div 
+       [:h1 {:style {:color "blue"}}[:b "Match draw -- GAME OVER"]]])))
+
 (defn init []
 
   [:div
    
+   #_{:style {:padding "10%"
+            :margin "10%"
+            :border "5px solid black"}}
+   
    [:h1 "Noughts & Crosses"]
 
    [display-winner (:winner @*game)]
-
+   [match-draw (:board @*game)]
+   ;[:button.btn.btn-primary "hello"]
    [:input {:type "button"
             :value "turn of O"
             :on-click #(swap! *game update-turn "o")}]
-   
+
    [:input {:type "button"
             :value "turn of X"
             :on-click #(swap! *game update-turn "x")}]
-   
+
    [:input {:type "button"
             :value "reset!"
             :on-click #(reset! *game empty-game)}]
-   
+
    [draw-board (:board @*game) (:winner @*game)]])
 
 (defn start []
