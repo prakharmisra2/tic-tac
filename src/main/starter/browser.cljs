@@ -2,17 +2,9 @@
   (:require [reagent.core :as r]
             [reagent.dom :as rdom]
             [starter.events :as sevt]
-            [re-frame.core :as rf]))
-
-(def ^:private empty-game
-  {:board [["_" "_" "_"]
-           ["_" "_" "_"]
-           ["_" "_" "_"]]
-   :moves []
-   :turn "o"
-   :winner nil})
-
-(def *game (r/atom empty-game))
+            [re-frame.core :as rf]
+            ))
+;;function to draw noughts
 (defn draw-circle [x y]
   (let [cx (+ 50 (* x 100))
         cy (+ 50 (* y 100))
@@ -25,108 +17,13 @@
                :stroke-width 10
                :fill "white"}]]))
 
-
-(defn hori-check [board]
-  (cond
-    (= (map #(get-in board [0 %]) [0 1 2]) ["x" "x" "x"]) ["x" [0 0] [0 2]]
-    (= (map #(get-in board [0 %]) [0 1 2]) ["o" "o" "o"]) ["o" [0 0] [0 2]]
-    (= (map #(get-in board [1 %]) [0 1 2]) ["x" "x" "x"]) ["x" [1 0] [1 2]]
-    (= (map #(get-in board [1 %]) [0 1 2]) ["o" "o" "o"]) ["o" [1 0] [1 2]]
-    (= (map #(get-in board [2 %]) [0 1 2]) ["x" "x" "x"]) ["x" [2 0] [2 2]]
-    (= (map #(get-in board [2 %]) [0 1 2]) ["o" "o" "o"]) ["o" [2 0] [2 2]]
-    :else nil))
-(defn vert-check [board]
-  (cond
-    (= (map #(get-in board [% 0]) [0 1 2]) ["x" "x" "x"]) ["x" [0 0] [2 0]]
-    (= (map #(get-in board [% 0]) [0 1 2]) ["o" "o" "o"]) ["o" [0 0] [2 0]]
-    (= (map #(get-in board [% 1]) [0 1 2]) ["x" "x" "x"]) ["x" [0 1] [2 1]]
-    (= (map #(get-in board [% 1]) [0 1 2]) ["o" "o" "o"]) ["o" [0 1] [2 1]]
-    (= (map #(get-in board [% 2]) [0 1 2]) ["x" "x" "x"]) ["x" [0 2] [2 2]]
-    (= (map #(get-in board [% 2]) [0 1 2]) ["o" "o" "o"]) ["o" [0 2] [2 2]]
-    :else nil))
-(defn dig-check [board]
-  (cond
-    (= (map #(get-in board [% %]) [0 1 2]) ["x" "x" "x"]) ["x" [0 0] [2 2]]
-    (= (map #(get-in board [% %]) [0 1 2]) ["o" "o" "o"]) ["o" [0 0] [2 2]]
-    (= (map #(get-in board [%1 %2]) [0 1 2] [2 1 0]) ["o" "o" "o"]) ["o" [0 2] [2 0]]
-    (= (map #(get-in board [%1 %2]) [0 1 2] [2 1 0]) ["x" "x" "x"]) ["x" [0 2] [2 0]]
-    :else nil))
-(defn winner [board]
-  (let [win (or (hori-check board)
-                (vert-check board)
-                (dig-check board))]
-    win))
-
-
-
+;;HTML component to display winner
 (defn display-winner [winn]
   (when winn
     [:div
      [:h1 {:style {:color "red"}} "Winner is " (first winn)]]))
 
-(defn update-board [board [c x y]]
-  (assoc-in board [x y] c))
-
-
-(defn play-move [game x y]
-  (let [c (get-in game [:turn])
-        move [c x y]
-        next-turn (if (= c "o")
-                    "x"
-                    "o")
-        new-board (update-board (:board game) move)]
-    (-> game
-        (update-in [:moves] conj move)
-        (assoc :board new-board)
-        (assoc :turn next-turn)
-        (assoc :winner (winner new-board)))))
-
-(comment
-  (def *game (r/atom {:board [["o" "o" "x"]
-                              ["x" "x" "o"]
-                              ["o" "x" "o"]]
-                      :moves []
-                      :turn "o"
-                      :winner nil}))
-  (get-in @*game [:board 1])
-  @*game
-  (swap! *game update-in [:moves] conj [3 4])
-
-  (swap! *game #(assoc-in % [:moves]  [1 2]))
-
-  (swap! *game #(update-in % [:moves] conj ["o" 1 2]))
-  @*game
-  (swap! *game update :turn (constantly "x"))
-  (get-in @*game [:turn 1])
-  (swap! *game #(update-in % [:moves] conj [1 2]))
-  (js/console.log @*game)
-
-  (defn draw [board]
-    (if (and
-         (every? #(not= "_" %) (flatten board))
-         (not (winner board)))
-      (println "draw")))
-  (draw (:board @*game))
-  (clojure.string/join "." ["abc" "def"])
-
-  (defn match-draw [board]
-    (if (and
-         (every? #(not= "_" %) (flatten board))
-         (not (winner board)))
-      true
-      false))
-  (assoc :draw (draw-match new-board))
-  
-  (when (:draw @*game)
-    [:div
-     [:h1 {:style {:color "blue"}} [:b "Match draw -- GAME OVER"]]])
-
-
-  )
-
-
-  
-
+;;function that makes rectangle to make the place click-able on the svg component
 (defn draw-rectangle [x y]
   (let [x1 (+ 12 (* 98 x))
         y1 (+ 12 (* 98 y))
@@ -139,12 +36,8 @@
              :height height
              :fill "white"
              :stroke "white"
-             :onClick #(do
-                         (swap! *game play-move y x)
-                         (rf/dispatch [::sevt/play-move y x])
-                         (js/console.log @*game))}]]))
-
-
+             :onClick #(rf/dispatch [::sevt/play-move y x])}]]))
+;;function to draw cross
 (defn draw-cross [x y]
   (let [x1 (+ 20 (* 100 x))
         y1 (+ 20 (* 100 y))
@@ -162,15 +55,20 @@
              :y2 y1
              :stroke "red"
              :stroke-width 10}]]))
-(defn draw-board [board winner]
+;;function to draw game board 
+(defn draw-board1 []
   (let [size 300
         x-ini 10
         y-ini 10
         x-cor 100
-        y-cor 100]
+        y-cor 100
+        board @(rf/subscribe [::sevt/load-board])
+        winner @(rf/subscribe [::sevt/load-winner])]
 
     (into
-     [:svg {:viewBox "0 0 900 900"}
+     [:svg {:viewBox "0 0 900 900"
+            :margin "10%"
+            }
       [:rect  {:x            x-ini
                :y            y-ini
                :width        (- size x-ini)
@@ -211,7 +109,7 @@
                (if (= cell "o")
                  (draw-circle y x)
                  (when-not winner (draw-rectangle y x))))))
-      (when winner
+      (when winner          ;draw line when winner is decided 
         (let [[_ [y1 x1] [y2 x2]] winner
               xini (+ 50 (* x1 100))
               yini (+ 50 (* y1 100))
@@ -223,52 +121,45 @@
                                                :y2 yend
                                                :stroke "green"
                                                :stroke-width 4}]]))))))
-(defn update-turn [game tur]
-  (assoc game :turn  tur))
-
+;;function to check for 'draw' in the match and display it.
 (defn match-draw [board] 
-  (if (and
-       (every? #(not= "_" %) (flatten board))
-       (not (winner board)))
-    (do 
-      [:div 
-       [:h1 {:style {:color "blue"}}[:b "Match draw -- GAME OVER"]]])))
+  (let [winner @(rf/subscribe [::sevt/load-winner])]
+    (when (and
+         (every? #(not= "_" %) (flatten board))
+         (not winner))
+    [:div 
+     [:h1 {:style {:color "blue"}} [:b "Match draw -- GAME OVER"]]])))
 
 (defn init []
 
-  [:div
+  [:div 
+   {
+    :margin "10%"
+    :padding "10%"
+   }
    
-   #_{:style {:padding "10%"
-            :margin "10%"
-            :border "5px solid black"}}
-   
-   [:h1 "Noughts & Crosses"]
-
-   [display-winner (:winner @*game)]
-   [match-draw (:board @*game)]
-   ;[:button.btn.btn-primary "hello"]
+   [:h1 "Noughts & Crosses"] 
    [:input {:type "button"
             :value "turn of O"
-            :on-click #(do
-                         (swap! *game update-turn "o")
-                         (rf/dispatch [::sevt/update-turn "o"] ))}]
+            :on-click #(rf/dispatch [::sevt/update-turn "o"])}]
 
    [:input {:type "button"
             :value "turn of X"
-            :on-click #(do
-                         (swap! *game update-turn "x")
-                         (rf/dispatch [::sevt/update-turn "x"]))}]
+            :on-click #(rf/dispatch [::sevt/update-turn "x"])}]
 
    [:input {:type "button"
             :value "reset!"
-            :on-click #(do
-                         (reset! *game empty-game)
-                         (rf/dispatch [::sevt/load-game ]))}]
+            :on-click #(rf/dispatch [::sevt/load-game])}]
 
-   [draw-board (:board @*game) (:winner @*game)]])
+   
+   [display-winner @(rf/subscribe [::sevt/load-winner])]
+
+   [match-draw @(rf/subscribe [::sevt/load-board])]
+
+   [draw-board1]])
 
 (defn start []
-  (rf/dispatch [::sevt/load-game])
+  (rf/dispatch [::sevt/load-game])      ;load the initial game 
   (rdom/render [init] (js/document.getElementById "app"))
   )
 
